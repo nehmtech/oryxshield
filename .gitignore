@@ -1,0 +1,20 @@
+# secrets
+.env
+*.env
+!.env.example
+# python
+env/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+htmlcov/
+.coverage
+*.sqlite3
+*.log
+backend/media/
+backend/logs/
+# node
+node_modules/
+frontend/dist/
+.DS_Store
