@@ -1,232 +1,136 @@
 ﻿# OryxShield
 
 **Integrated Public Health Surveillance & Outbreak Response Platform**
-Developed by NEHMTECH INNOVATIONS LIMITED · Author: Nehemiah
+
+Built by NEHMTECH INNOVATIONS LIMITED · Author: Nehemiah
+
+OryxShield gives national and regional health authorities one place to **detect outbreaks early, assess risk, and coordinate the response**. It ingests surveillance data, flags anomalies, scores risk, raises alerts, and drives multi-agency response workflows, with live updates pushed to every connected dashboard.
 
 ---
 
+## What it does
 
-## Overview
-OryxShield is a full-stack digital infrastructure platform for real-time disease surveillance, outbreak detection, and coordinated public health response. It is designed for national and regional health authorities, epidemiologists, field officers, and emergency coordinators operating under high-pressure, time-sensitive conditions.
-
-The platform ingests health data from multiple sources, runs automated anomaly detection and risk scoring, generates alerts, orchestrates multi-agency response workflows, and delivers actionable reports — all in real time.
-
----
+| Capability | Details |
+|---|---|
+| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping |
+| **Risk assessment** | Risk scoring, outbreak probability, threshold-based alerts |
+| **Response** | Response plans, activations, incidents, interventions, decision support |
+| **Coordination** | Multi-agency tasks, teams, meetings, escalation |
+| **Resources** | Inventory, allocations, supply requests and approvals |
+| **Communications** | Messaging, broadcasts, announcements; SMS, push and email delivery; geo-targeting; translation |
+| **Analytics** | Epidemiological models (SIR/SEIR, time series), spatial analysis, reports, PDF/CSV/XLSX export |
+| **Operations** | Contact tracing, quarantine, vaccination tracking, field logs |
+| **Mobile** | Field-officer and CHW endpoints, device tokens, offline sync |
+| **Integrations** | DHIS2, SORMAS, WHO reporting, Africa CDC, LIS/EMR connectors, webhooks, encrypted credential storage |
+| **Real time** | Django Channels WebSockets: alerts, notifications, surveillance, dashboard, response, resources, operations, system status |
+| **Security** | JWT auth, TOTP/SMS/email 2FA, role and location-based permissions, API keys, audit logging, Fernet-encrypted integration secrets |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  React 18 SPA  (Vite · React Router v6 · Axios)     │
-│  Dark design system · Role-based routing             │
-└─────────────┬──────────────────────┬────────────────┘
-              │  REST /api/v1/       │  WSS /ws/
-              ▼                      ▼
-┌─────────────────────────────────────────────────────┐
-│  Django 5.2 + DRF       │  Django Channels (ASGI)   │
-│  13 domain apps         │  7 WebSocket consumers    │
-│  Daphne ASGI server     │  Redis channel layer      │
-└─────────────────────────────────────────────────────┘
-              │  Celery tasks
-              ▼
-┌─────────────────────────────────────────────────────┐
-│  PostgreSQL  │  Redis (broker + cache)  │  AWS S3   │
-└─────────────────────────────────────────────────────┘
-```
-
-### Backend — Django 5.2 + Django REST Framework
-
-Organised into 13 Django applications, each owning a distinct operational domain:
-
-| App | Responsibility |
-|-----|----------------|
-| `core` | User accounts, roles, JWT auth, 2FA, notifications, audit logs, API keys, system config |
-| `surveillance` | Health data ingestion, anomaly detection, disease case management, hotspot mapping |
-| `risk_assessment` | Risk scoring engine, outbreak probability models, threshold alerts |
-| `response` | Response plan lifecycle, incident management, intervention tracking |
-| `coordination` | Multi-agency task management, meetings, coordination threads |
-| `resources` | Inventory tracking, resource allocation, supply requests and approvals |
-| `communications` | Messaging, announcements, broadcasts, public feedback handling |
-| `analytics` | Epi reports, dashboards, data exports, WHO/IHR submissions, PDF generation |
-| `operations` | Contact tracing, quarantine management, vaccination tracking, field logs |
-| `mobile` | Mobile-optimised endpoints for field officers and CHWs |
-| `integrations` | DHIS2, SORMAS, WHO EIOS, HL7 FHIR connectors, inbound webhooks |
-| `websockets` | Django Channels consumers for live data streams |
-| `ws_mgmt` | WebSocket REST management — connection audit, channel groups, broadcasts |
-
-### Frontend — React 18 + Vite
-
-A single-page application using React Router v6. All dashboard pages are lazy-loaded. The shell (Sidebar + Topbar) stays mounted across route changes. Public pages (Home, About, Contact, Privacy, Terms) are accessible without authentication.
-
----
-
-## Real-Time Data Flow
-
-```
-Health Data Ingestion (REST POST /api/v1/surveillance/health-data/)
-        │
-        ▼
-  Anomaly Detection  ◄── Celery worker (runs every 60 s)
-        │                Statistical thresholds + SIR/SEIR models
-        ▼
-  AnomalyDetection record created
-        │
-        ▼
-  Risk Score Recalculation  ◄── Celery task triggered within 5 s
-        │                       ARIMA time-series + spatial hotspot analysis
-        ▼
-  Alert generated
-        │
-        ├──► WebSocket push to connected dashboard clients
-        │    (Django Channels / Daphne ASGI → /ws/alerts/)
-        │
-        ├──► SMS  (Africa's Talking / Twilio)
-        ├──► Push (Firebase / APNS)
-        └──► Email (SendGrid)
-                │
+┌──────────────────────────────────────────────────────┐
+│  React 18 SPA (Vite · React Router 6 · Axios)        │
+│  Lazy-loaded pages · role-based routing              │
+└───────────────┬───────────────────────┬──────────────┘
+                │ REST  /api/v1/        │ WS  /ws/...
+                ▼                       ▼
+┌──────────────────────────────────────────────────────┐
+│  Django + DRF   │   Django Channels (Daphne ASGI)    │
+│  12 domain apps │   8 WebSocket consumers            │
+└───────────────┬──────────────────────────────────────┘
+                │ Celery tasks
                 ▼
-        ResponseActivation (if severity threshold met)
-                │
-                ▼
-        Coordination tasks assigned to agencies
+┌──────────────────────────────────────────────────────┐
+│  PostgreSQL · Redis (broker, cache, channel layer)   │
+│  S3-compatible storage (optional)                    │
+└──────────────────────────────────────────────────────┘
 ```
 
----
+**Data flow:** data ingested → anomaly detection (Celery) → risk recalculation → alert → WebSocket push + SMS/push/email → response activation → coordination tasks.
 
-## Authentication & Roles
+### Repository layout
 
-JWT authentication via SimpleJWT. Short-lived access tokens are refreshed transparently by the frontend API service layer. 2FA is supported via TOTP, SMS, and email OTP.
+```
+backend/    Django project (config/, core/, surveillance/, risk_assessment/, response/,
+            coordination/, resources/, communications/, analytics/, operations/,
+            mobile/, integrations/, websockets/, tests/)
+frontend/   React SPA (src/pages, components, context, hooks/ws, services/api.js)
+oryxshield/ Earlier standalone frontend prototype (kept for reference)
+```
+
+Details: [backend/README.md](backend/README.md) · [frontend/README.md](frontend/README.md)
+
+## Roles
 
 | Role | Access |
-|------|--------|
-| `admin` | Full system access including user management and settings |
-| `analyst` | Surveillance, risk assessment, analytics |
+|---|---|
+| `admin` | Everything, including users, locations, settings, audit logs |
+| `analyst` | Surveillance, risk, analytics |
 | `coordinator` | Response, coordination, resources, communications |
-| `field_officer` | Response detail, operations, mobile endpoints |
+| `field_officer` | Response detail, operations, mobile |
 | `public` | Dashboard only |
 
----
+## Quick start
 
-## Key Technologies
-
-**Backend**
-
-| Concern | Technology |
-|---------|-----------|
-| Framework | Django 5.2, DRF 3.16 |
-| Language | Python 3.12 |
-| ASGI server | Daphne |
-| Task queue | Celery 5.6 + Redis |
-| Real-time | Django Channels 4.3 |
-| Database | PostgreSQL (production), SQLite (development) |
-| Auth | SimpleJWT, pyotp, python-social-auth |
-| PDF generation | ReportLab 4.4.9 |
-| Data science | scipy, statsmodels, scikit-learn, numpy, pandas |
-| Geospatial | geopy, shapely, pyproj |
-| Storage | boto3 (AWS S3) |
-
-**Frontend**
-
-| Concern | Technology |
-|---------|-----------|
-| Framework | React 18 |
-| Build | Vite 5 |
-| Routing | React Router v6 |
-| HTTP | Axios |
-| Animation | Framer Motion |
-| Charts | Recharts |
-| Dates | date-fns |
-| Styling | Inline styles only — no external UI framework |
-
-**Notifications & Communications**
-
-- Africa's Talking — SMS (Southern Africa primary)
-- Twilio — SMS (global fallback)
-- Firebase Cloud Messaging — Android push
-- APNS — iOS push
-- SendGrid — transactional email
-
----
-
-## Running Locally
-
-### Backend
+**Requirements:** Python 3.12 (matches the Dockerfile and pinned requirements), Node 18+, Redis, PostgreSQL (SQLite works for development).
 
 ```bash
+# Backend
 cd backend
-
-# Install dependencies
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env: SECRET_KEY, DATABASE_URL, REDIS_URL, and external API keys
-
-# Run migrations
+cp .env.example .env                                  # then fill in your own values
 python manage.py migrate
-
-# Seed development data (creates users, locations, and records for all 12 apps)
-python manage.py seed_data
-# Default admin: username=admin  password=Admin1234!
-
-# Start the ASGI server (required for WebSocket support)
+python manage.py createsuperuser                      # create your own admin
+python manage.py seed_data                            # optional demo data (development only)
 daphne -b 0.0.0.0 -p 8000 config.asgi:application
+celery -A config worker -l info                       # separate terminal
+celery -A config beat   -l info                       # separate terminal
 
-# Celery worker (separate terminal)
-celery -A config worker --loglevel=info
-
-# Celery beat — scheduled tasks (separate terminal)
-celery -A config beat --loglevel=info
-```
-
-API documentation is auto-generated and served at:
-- Swagger UI: `http://localhost:8000/api/docs/`
-- ReDoc: `http://localhost:8000/api/redoc/`
-
-### Frontend
-
-```bash
+# Frontend
 cd frontend
 npm install
-npm run dev     # starts at http://localhost:5173
+npm run dev                                           # http://localhost:5173
 ```
 
-Create `frontend/.env`:
+`frontend/.env`:
 ```env
 VITE_API_URL=http://localhost:8000/api/v1
 VITE_WS_URL=ws://localhost:8000/ws
 ```
 
----
+API docs: Swagger `http://localhost:8000/api/docs/`, ReDoc `http://localhost:8000/api/redoc/`.
 
-## Design System
+> Demo users from `seed_data` share the password in `SEED_USER_PASSWORD`; if unset, a random one is printed once. There are no default credentials. Never run the seed command against production.
 
-Fixed dark theme applied consistently across all pages:
+## Configuration & secrets
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| Background | `#0a0f1e` | Page background |
-| Surface | `#111827` | Cards, panels |
-| Surface High | `#151e2e` | Inputs, hover, shimmer |
-| Accent | `#3b82f6` | Primary actions, links, focus |
-| Success | `#10b981` | Confirmed, resolved, online |
-| Warning | `#f59e0b` | Moderate alerts, pending |
-| Danger | `#ef4444` | Critical alerts, destructive actions, errors |
-| Text | `#f9fafb` | Primary text |
-| Text Sub | `#9ca3af` | Secondary / muted text |
+All configuration comes from environment variables; see [backend/.env.example](backend/.env.example) for the full list. **Never commit `.env`**: it is git-ignored. Set at minimum `SECRET_KEY`, database and Redis settings, and an integration encryption key. Integration credentials are encrypted at rest. If a secret is ever exposed, rotate it.
 
-**Typography:**
-- **Bebas Neue** — page and section headings
-- **Space Mono** — monospace labels, badges, metadata, table headers
-- **IBM Plex Sans** — body text, descriptions, form fields
+## Testing
 
----
+```bash
+cd backend
+pytest                      # settings: config.settings.testing (in-memory SQLite, eager Celery)
+cd ../frontend && npm run build
+```
 
-## Development Status
+Current suite covers authentication, 2FA, permissions and credential encryption. The frontend production build passes.
 
-The backend API is complete across all 13 modules (83 endpoints, all returning 200). The frontend covers all primary workflows from public landing pages through the full operations platform. The platform is not yet deployed to a production environment.
+## Deployment
 
-See [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md) for detailed technical documentation.
+- `backend/Dockerfile` (multi-stage, non-root) and `backend/Procfile` (gunicorn + uvicorn worker, Celery worker, Celery beat, migrate on release) target Railway or any container host.
+- Use `config.settings.production`: set `DEBUG=False`, `ALLOWED_HOSTS`, secure-cookie and HTTPS flags, and `DATABASE_URL`/`REDIS_URL`.
+
+## Technology
+
+**Backend:** Django 5.2, DRF, SimpleJWT, Channels + Daphne, Celery + Redis, django-otp, django-allauth, drf-spectacular, scikit-learn / pandas / numpy, ReportLab, boto3.
+**Frontend:** React 18, Vite 5, React Router 6, Axios, Recharts, Framer Motion, date-fns.
+**Messaging:** Africa's Talking and Twilio (SMS), Firebase/APNS (push), SMTP/SendGrid (email).
+
+## Status
+
+Backend modules and frontend workflows are implemented; the frontend builds and the auth, 2FA and encryption tests pass. Not yet deployed to production. Pending work: broaden automated test coverage across the domain apps and a staging deployment.
 
 ---
 

@@ -13,7 +13,9 @@ Usage:
     python manage.py seed_data --app core    # seed only one app
 """
 
+import os
 import random
+import secrets
 import uuid
 from datetime import date, timedelta
 from decimal import Decimal
@@ -39,6 +41,18 @@ class Command(BaseCommand):
             help="Delete existing app data before seeding.")
         parser.add_argument("--app", type=str, default="all",
             help="Seed only a specific app.")
+
+    def _seed_password(self):
+        """Password for seeded demo users: SEED_USER_PASSWORD env var, else random (printed once)."""
+        if not hasattr(self, "_seed_pw"):
+            self._seed_pw = os.environ.get("SEED_USER_PASSWORD")
+            if not self._seed_pw:
+                self._seed_pw = secrets.token_urlsafe(16)
+                self.stdout.write(
+                    "Seeded users share a generated password (set SEED_USER_PASSWORD to choose): "
+                    + self._seed_pw
+                )
+        return self._seed_pw
 
     def handle(self, *args, **options):
         self.flush = options["flush"]
@@ -194,7 +208,7 @@ class Command(BaseCommand):
                 defaults={**spec},
             )
             if created:
-                user.set_password("OryxShield@2026!")
+                user.set_password(self._seed_password())
                 user.save()
 
             # Always ensure correct group assignment (idempotent)

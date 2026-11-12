@@ -205,8 +205,11 @@ class LocationBasedPermission(permissions.BasePermission):
         node = location
         while node:
             ids.add(node.pk)
-            # Use cached parent if already fetched; otherwise follow FK
-            node = getattr(node, "_cached_parent", None) or node.parent
+            # Django caches the related instance after the first FK access.
+            # Guard against cycles in malformed data.
+            node = node.parent
+            if node is not None and node.pk in ids:
+                break
         return frozenset(ids)
 
     def has_object_permission(self, request, view, obj) -> bool:

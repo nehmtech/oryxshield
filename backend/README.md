@@ -1,4 +1,4 @@
-﻿# OryxShield — Backend
+# OryxShield — Backend
 
 Public health emergency management platform for national health authorities and Africa CDC.
 Built with Django 5.2 + Django REST Framework + Django Channels.
@@ -101,7 +101,8 @@ python manage.py migrate
 
 # 4. Seed all development data
 python manage.py seed_data
-# Default admin — username: admin  password: Admin1234!
+# Create an admin account:  python manage.py createsuperuser
+# Seeded demo users share SEED_USER_PASSWORD (a random one is printed if unset)
 # Seeds all 12 apps with realistic records
 
 # 5. Start the ASGI server (required for WebSocket support)
@@ -460,14 +461,9 @@ python manage.py seed_data --flush
 #   integrations, triggers_and_quality
 ```
 
-**Default credentials created:**
-
-| Username | Password | Role |
-|----------|----------|------|
-| `admin` | `Admin1234!` | admin |
-| `analyst1` | `Analyst1234!` | analyst |
-| `coordinator1` | `Coord1234!` | coordinator |
-| `field1` | `Field1234!` | field_officer |
+**Demo users created** (`admin`, `analyst1`, `coordinator1`, `field1`, `analyst2`, `coordinator2`):
+all share one password taken from the `SEED_USER_PASSWORD` environment variable. If it is not set, a random
+password is generated and printed once at the end of the seed run. Never seed a production database.
 
 **Approximate record counts after full seed:**
 
