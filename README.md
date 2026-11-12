@@ -12,7 +12,7 @@ OryxShield gives national and regional health authorities one place to **detect 
 
 | Capability | Details |
 |---|---|
-| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping |
+| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping, **statistical early warning** (EARS C1/C2/C3, CUSUM, Poisson exceedance, Rt estimate) via `GET /api/v1/surveillance/dashboard/early-warning/?disease_code=...&location=...&days=60` |
 | **Risk assessment** | Risk scoring, outbreak probability, threshold-based alerts |
 | **Response** | Response plans, activations, incidents, interventions, decision support |
 | **Coordination** | Multi-agency tasks, teams, meetings, escalation |
@@ -115,7 +115,7 @@ pytest                      # settings: config.settings.testing (in-memory SQLit
 cd ../frontend && npm run build
 ```
 
-Current suite covers authentication, 2FA, permissions and credential encryption. The frontend production build passes.
+Current suite (66 tests) covers authentication, 2FA, permissions, credential encryption and the early-warning engine and API. The frontend production build passes.
 
 ## Deployment
 
@@ -130,7 +130,7 @@ Current suite covers authentication, 2FA, permissions and credential encryption.
 
 ## Status
 
-Backend modules and frontend workflows are implemented; the frontend builds and the auth, 2FA and encryption tests pass. Not yet deployed to production. Pending work: broaden automated test coverage across the domain apps and a staging deployment.
+Backend modules and frontend workflows are implemented; the frontend builds and the backend test suite passes. Not yet deployed to production. Pending work: broaden automated test coverage across the domain apps and a staging deployment.
 
 ---
 

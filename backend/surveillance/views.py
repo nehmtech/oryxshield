@@ -1,6 +1,7 @@
 """
 Views for the surveillance app.
 """
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.utils import timezone
@@ -470,6 +471,47 @@ class SurveillanceDashboardViewSet(viewsets.ViewSet):
     """Real-time dashboard statistics."""
 
     permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=["get"], url_path="early-warning")
+    def early_warning(self, request):
+        """
+        Statistical early-warning analysis for one disease (optionally one location).
+
+        Query params: disease_code (required), location (id), days (14-365, default 60).
+        Runs EARS C1-C3, CUSUM, Poisson exceedance and Rt estimation.
+        """
+        from .early_warning import analyze, fill_daily_series
+
+        disease_code = (request.query_params.get("disease_code") or "").strip()
+        if not disease_code:
+            return Response({"detail": "disease_code is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            days = int(request.query_params.get("days", 60))
+        except ValueError:
+            return Response({"detail": "days must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+        if not 14 <= days <= 365:
+            return Response({"detail": "days must be between 14 and 365."}, status=status.HTTP_400_BAD_REQUEST)
+
+        end = timezone.now().date()
+        start = end - timedelta(days=days - 1)
+        qs = HealthData.objects.filter(
+            is_deleted=False, disease_code=disease_code, date_recorded__date__gte=start,
+        )
+        location = request.query_params.get("location")
+        if location:
+            try:
+                qs = qs.filter(location_id=location)
+            except (ValueError, TypeError, DjangoValidationError):
+                return Response({"detail": "invalid location."}, status=status.HTTP_400_BAD_REQUEST)
+        counts = {
+            row["date_recorded__date"]: row["n"]
+            for row in qs.values("date_recorded__date").annotate(n=Count("id"))
+        }
+        series = fill_daily_series(counts, start, end)
+        result = analyze(series).to_dict()
+        result.update({"disease_code": disease_code, "location": location,
+                       "start": start.isoformat(), "end": end.isoformat(), "series": series})
+        return Response(result)
 
     @action(detail=False, methods=["get"])
     def overview(self, request):
