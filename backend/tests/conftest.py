@@ -1,6 +1,7 @@
-﻿"""
+"""
 OryxShield — pytest fixtures
 """
+from tests.constants import TEST_PASSWORD
 import pytest
 from django.contrib.auth.models import Group, User
 from rest_framework.test import APIClient
@@ -16,7 +17,7 @@ def admin_user(db):
     user = User.objects.create_user(
         username="testadmin",
         email="admin@test.com",
-        password="Testpass@2026!",
+        password=TEST_PASSWORD,
         is_staff=True,
         is_superuser=True,
     )
@@ -29,7 +30,7 @@ def analyst_user(db):
     user = User.objects.create_user(
         username="testanalyst",
         email="analyst@test.com",
-        password="Testpass@2026!",
+        password=TEST_PASSWORD,
         is_staff=False,
     )
     user.groups.add(group)
@@ -42,7 +43,7 @@ def coordinator_user(db):
     user = User.objects.create_user(
         username="testcoordinator",
         email="coordinator@test.com",
-        password="Testpass@2026!",
+        password=TEST_PASSWORD,
         is_staff=False,
     )
     user.groups.add(group)
@@ -55,7 +56,7 @@ def field_officer_user(db):
     user = User.objects.create_user(
         username="testfield",
         email="field@test.com",
-        password="Testpass@2026!",
+        password=TEST_PASSWORD,
         is_staff=False,
     )
     user.groups.add(group)
@@ -67,7 +68,7 @@ def public_user(db):
     return User.objects.create_user(
         username="testpublic",
         email="public@test.com",
-        password="Testpass@2026!",
+        password=TEST_PASSWORD,
         is_staff=False,
     )
 

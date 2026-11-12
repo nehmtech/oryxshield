@@ -1,6 +1,7 @@
 """
 Tests: authentication endpoints and role derivation.
 """
+from tests.constants import TEST_PASSWORD
 import pytest
 from django.urls import reverse
 
@@ -9,7 +10,7 @@ from django.urls import reverse
 class TestLogin:
     def test_login_success(self, api_client, admin_user):
         url = "/api/v1/auth/login/"
-        res = api_client.post(url, {"username": "testadmin", "password": "Testpass@2026!"})
+        res = api_client.post(url, {"username": "testadmin", "password": TEST_PASSWORD})
         assert res.status_code == 200
         assert "access" in res.data
         assert "refresh" in res.data

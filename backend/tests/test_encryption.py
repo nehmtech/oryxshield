@@ -1,6 +1,7 @@
 """
 Tests: Fernet credential encryption for ExternalSystem.
 """
+from tests.constants import TEST_PASSWORD
 import pytest
 from integrations.encryption import encrypt_credentials, decrypt_credentials, is_encrypted
 
@@ -73,7 +74,7 @@ class TestExternalSystemEncryption:
             system_type="DHIS2",
             base_url="https://dhis2.example.com",
             auth_type="BASIC",
-            credentials={"username": "admin", "password": "secret"},
+            credentials={"username": "admin", "password": TEST_PASSWORD},
         )
         # Reload from DB
         system.refresh_from_db()

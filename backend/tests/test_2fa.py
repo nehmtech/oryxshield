@@ -1,6 +1,7 @@
-﻿"""
+"""
 Tests: 2FA login flow — challenge, verify, resend.
 """
+from tests.constants import TEST_PASSWORD, WRONG_PASSWORD
 import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
@@ -12,7 +13,7 @@ class TestLoginNo2FA:
 
     def test_login_returns_tokens(self, api_client, admin_user):
         res = api_client.post("/api/v1/auth/login/", {
-            "username": "testadmin", "password": "Testpass@2026!",
+            "username": "testadmin", "password": TEST_PASSWORD,
         })
         assert res.status_code == 200
         assert res.data["requires_2fa"] is False
@@ -21,7 +22,7 @@ class TestLoginNo2FA:
 
     def test_login_wrong_password_rejected(self, api_client, admin_user):
         res = api_client.post("/api/v1/auth/login/", {
-            "username": "testadmin", "password": "wrongpass",
+            "username": "testadmin", "password": WRONG_PASSWORD,
         })
         assert res.status_code == 401
 
@@ -39,7 +40,7 @@ class TestLogin2FAChallenge:
         from django.contrib.auth.models import User
         user = User.objects.create_user(
             username="twofa_user", email="twofa@test.com",
-            password="Testpass@2026!", is_active=True,
+            password=TEST_PASSWORD, is_active=True,
         )
         profile = user.profile
         profile.two_factor_enabled = True
@@ -49,7 +50,7 @@ class TestLogin2FAChallenge:
 
     def test_2fa_login_returns_challenge(self, api_client, user_with_2fa):
         res = api_client.post("/api/v1/auth/login/", {
-            "username": "twofa_user", "password": "Testpass@2026!",
+            "username": "twofa_user", "password": TEST_PASSWORD,
         })
         assert res.status_code == 200
         assert res.data["requires_2fa"] is True
@@ -59,7 +60,7 @@ class TestLogin2FAChallenge:
 
     def test_2fa_challenge_cached(self, api_client, user_with_2fa):
         res = api_client.post("/api/v1/auth/login/", {
-            "username": "twofa_user", "password": "Testpass@2026!",
+            "username": "twofa_user", "password": TEST_PASSWORD,
         })
         session_token = res.data["session_token"]
         cached = cache.get(f"2fa_session:{session_token}")
@@ -77,7 +78,7 @@ class TestTwoFactorVerify:
 
         user = User.objects.create_user(
             username="verify_user", email="verify@test.com",
-            password="Testpass@2026!", is_active=True,
+            password=TEST_PASSWORD, is_active=True,
         )
         profile = user.profile
         profile.two_factor_enabled = True
@@ -138,7 +139,7 @@ class TestTwoFactorResend:
 
         user = User.objects.create_user(
             username="resend_user", email="resend@test.com",
-            password="Testpass@2026!", is_active=True,
+            password=TEST_PASSWORD, is_active=True,
         )
         profile = user.profile
         profile.two_factor_enabled = True
