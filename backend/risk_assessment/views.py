@@ -3,7 +3,7 @@ ViewSets for the risk_assessment app.
 
 URL prefix: /api/v1/risk/
 """
-from django.db.models import Avg, Count, Max, Q
+from django.db.models import F, Avg, Count, Max, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from datetime import timedelta
@@ -140,7 +140,7 @@ class RiskScoreViewSet(viewsets.ModelViewSet):
         qs = (
             self.get_queryset()
             .filter(assessment_date__gte=start_date.date())
-            .annotate(date=TruncDate("assessment_date"))
+            .annotate(date=F("assessment_date"))  # DateField already; TruncDate breaks on SQLite
             .values("date")
             .annotate(
                 average_score=Avg("overall_score"),

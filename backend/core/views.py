@@ -369,8 +369,14 @@ class LocationViewSet(viewsets.ModelViewSet, SoftDeleteViewMixin):
 
     @action(detail=False, methods=["get"])
     def tree(self, request) -> Response:
-        roots = self.get_queryset().filter(parent=None)
-        serializer = LocationTreeSerializer(roots, many=True, context={"request": request})
+        # One query for every live location; group by parent in memory.
+        children_map: dict = {}
+        for loc in Location.objects.filter(is_deleted=False).order_by("name"):
+            children_map.setdefault(loc.parent_id, []).append(loc)
+        roots = children_map.get(None, [])
+        serializer = LocationTreeSerializer(
+            roots, many=True, context={"request": request, "children_map": children_map}
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])

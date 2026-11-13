@@ -224,7 +224,13 @@ class LocationTreeSerializer(LocationSerializer):
         fields = LocationSerializer.Meta.fields + ["children"]  # type: ignore[operator]
 
     def get_children(self, obj: Location) -> list:
-        children = obj.children.filter(is_deleted=False)
+        # Preferred path: the view passes a prebuilt {parent_id: [children]} map so the
+        # whole tree costs a single query instead of one per node.
+        child_map = self.context.get("children_map")
+        if child_map is not None:
+            children = child_map.get(obj.pk, [])
+        else:
+            children = obj.children.filter(is_deleted=False)
         return LocationTreeSerializer(children, many=True, context=self.context).data
 
 

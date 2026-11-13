@@ -138,6 +138,9 @@ MIDDLEWARE = [
     # 1. Security (must be first)
     "django.middleware.security.SecurityMiddleware",
 
+    # 1b. Compress large JSON responses (big win for list/tree/export payloads)
+    "django.middleware.gzip.GZipMiddleware",
+
     # 2. CORS (before any middleware that generates a response)
     "corsheaders.middleware.CorsMiddleware",
 
