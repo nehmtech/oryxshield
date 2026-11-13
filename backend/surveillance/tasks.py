@@ -77,6 +77,26 @@ def run_anomaly_detection(self):
 
 
 # ---------------------------------------------------------------------------
+# Scheduled: statistical early-warning scan
+# ---------------------------------------------------------------------------
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def run_early_warning_scan(self):
+    """EARS/CUSUM/Poisson/Rt scan over recent data; raises AnomalyDetection records."""
+    from .early_warning_service import scan
+
+    try:
+        stats = scan()
+    except Exception as exc:
+        logger.exception("run_early_warning_scan failed")
+        raise self.retry(exc=exc)
+    if stats["anomalies_created"]:
+        _emit("anomaly_detected", {"count": stats["anomalies_created"],
+                                   "timestamp": timezone.now().isoformat()})
+    return stats
+
+
+# ---------------------------------------------------------------------------
 # Scheduled: cluster identification
 # ---------------------------------------------------------------------------
 

@@ -113,6 +113,7 @@ app.conf.task_default_routing_key = "default"
 app.conf.task_routes = {
     # ---- HIGH PRIORITY ----
     "surveillance.tasks.run_anomaly_detection":      {"queue": "high_priority", "priority": 9},
+    "surveillance.tasks.run_early_warning_scan":     {"queue": "high_priority", "priority": 9},
     "surveillance.tasks.process_incoming_data":      {"queue": "high_priority", "priority": 9},
     "surveillance.tasks.process_critical_alert":     {"queue": "high_priority", "priority": 10},
     "risk_assessment.tasks.calculate_all_risk_scores":{"queue": "high_priority", "priority": 8},
@@ -175,6 +176,11 @@ app.conf.beat_schedule = {
     "surveillance-anomaly-detection-every-5min": {
         "task": "surveillance.tasks.run_anomaly_detection",
         "schedule": 300.0,
+        "options": {"queue": "high_priority", "priority": 9},
+    },
+    "surveillance-early-warning-scan-hourly": {
+        "task": "surveillance.tasks.run_early_warning_scan",
+        "schedule": 3600.0,
         "options": {"queue": "high_priority", "priority": 9},
     },
     "surveillance-process-incoming-data-every-1min": {

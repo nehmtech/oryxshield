@@ -12,7 +12,7 @@ OryxShield gives national and regional health authorities one place to **detect 
 
 | Capability | Details |
 |---|---|
-| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping, **statistical early warning** (EARS C1/C2/C3, CUSUM, Poisson exceedance, Rt estimate) via `GET /api/v1/surveillance/dashboard/early-warning/?disease_code=...&location=...&days=60` |
+| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping, **statistical early warning** (EARS C1/C2/C3, CUSUM, Poisson exceedance, Rt estimate), run hourly by Celery and raising deduplicated anomalies automatically, also available on demand via `GET /api/v1/surveillance/dashboard/early-warning/?disease_code=...&location=...&days=60` |
 | **Risk assessment** | Risk scoring, outbreak probability, threshold-based alerts |
 | **Response** | Response plans, activations, incidents, interventions, decision support |
 | **Coordination** | Multi-agency tasks, teams, meetings, escalation |

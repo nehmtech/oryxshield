@@ -148,3 +148,40 @@ class TestEarlyWarningAPI:
         api_client.force_authenticate(analyst_user)
         r = api_client.get(self.URL, {"disease_code": "ZZZ", "days": 30})
         assert r.status_code == 200 and r.json()["status"] == "NORMAL"
+
+
+@pytest.mark.django_db
+class TestEarlyWarningScan:
+    def _seed(self, series, code="A00"):
+        from core.models import Location
+        from surveillance.models import DataSource, HealthData
+        loc, _ = Location.objects.get_or_create(name="Erongo", code="NA-ER", defaults={"location_type": "REGION"})
+        src, _ = DataSource.objects.get_or_create(name="H", source_type="HOSPITAL", location=loc)
+        now = timezone.now()
+        rows = []
+        for i, n in enumerate(series):
+            day = now - timedelta(days=len(series) - 1 - i)
+            rows += [HealthData(data_source=src, location=loc, data_type="CASE", date_recorded=day,
+                                disease_code=code, disease_name="Cholera") for _ in range(n)]
+        HealthData.objects.bulk_create(rows)
+
+    def test_creates_anomaly_once(self):
+        from surveillance.early_warning_service import scan
+        from surveillance.models import AnomalyDetection
+        self._seed(FLAT[-16:] + [10, 16, 24, 36])
+        first = scan()
+        assert first["anomalies_created"] == 1
+        a = AnomalyDetection.objects.get()
+        assert a.detection_method.startswith("EARLY_WARNING") and a.severity in {"MEDIUM", "HIGH", "CRITICAL"}
+        second = scan()
+        assert second["anomalies_created"] == 0 and second["skipped_duplicates"] == 1
+
+    def test_quiet_and_tiny_series_ignored(self):
+        from surveillance.early_warning_service import scan
+        self._seed(FLAT)
+        assert scan()["anomalies_created"] == 0
+
+    def test_task_runs(self):
+        from surveillance.tasks import run_early_warning_scan
+        self._seed(FLAT[-16:] + [10, 16, 24, 36])
+        assert run_early_warning_scan.apply().get()["anomalies_created"] == 1
