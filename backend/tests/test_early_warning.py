@@ -208,3 +208,31 @@ def test_anomaly_list_exposes_detection_method_and_search(api_client, analyst_us
 def test_hotspot_search_does_not_error(api_client, analyst_user):
     api_client.force_authenticate(analyst_user)
     assert api_client.get("/api/v1/surveillance/hotspots/", {"search": "x"}).status_code == 200
+
+
+@pytest.mark.django_db
+class TestEarlyWarningOverview:
+    URL = "/api/v1/surveillance/dashboard/early-warning-overview/"
+
+    def test_ranks_surging_first_and_has_series(self, api_client, analyst_user):
+        helper = TestEarlyWarningScan()
+        helper._seed(FLAT[-16:] + [10, 16, 24, 36], code="A00")
+        helper._seed(FLAT, code="B00")
+        api_client.force_authenticate(analyst_user)
+        r = api_client.get(self.URL)
+        rows = r.json()["results"]
+        assert r.status_code == 200 and len(rows) == 2
+        assert rows[0]["disease_code"] == "A00" and rows[0]["status"] in {"WARNING", "ALERT"}
+        assert len(rows[0]["series"]) <= 30 and rows[1]["status"] == "NORMAL"
+
+    def test_does_not_create_records(self, api_client, analyst_user):
+        from surveillance.models import AnomalyDetection
+        TestEarlyWarningScan()._seed(FLAT[-16:] + [10, 16, 24, 36])
+        api_client.force_authenticate(analyst_user)
+        api_client.get(self.URL)
+        assert AnomalyDetection.objects.count() == 0
+
+    def test_validation_and_auth(self, api_client, analyst_user):
+        assert api_client.get(self.URL).status_code in (401, 403)
+        api_client.force_authenticate(analyst_user)
+        assert api_client.get(self.URL, {"limit": "abc"}).status_code == 400

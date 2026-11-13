@@ -781,7 +781,21 @@ function CasesSnapshot({ data, loading, error, onRetry }) {
 }
 
 // ─── Early Warning ──────────────────────────────────────────────────────────────
-const EW_SEVERITY_COLORS = { LOW: C.success, MEDIUM: C.warning, HIGH: '#f97316', CRITICAL: C.danger }
+const EW_STATUS_COLORS = {
+  ALERT: C.danger, WARNING: '#f97316', WATCH: C.warning, NORMAL: C.success, INSUFFICIENT_DATA: C.textMuted,
+}
+
+function Sparkline({ data, color, width = 96, height = 28 }) {
+  if (!data || data.length < 2) return null
+  const max = Math.max(...data, 1)
+  const step = width / (data.length - 1)
+  const pts = data.map((v, i) => `${(i * step).toFixed(1)},${(height - 2 - (v / max) * (height - 4)).toFixed(1)}`).join(' ')
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 function EarlyWarningPanel() {
   const [items, setItems]     = useState([])
@@ -791,11 +805,8 @@ function EarlyWarningPanel() {
   const load = useCallback(async () => {
     setLoading(true); setError(false)
     try {
-      const res = await surveillanceApi.listAnomalies({
-        search: 'EARLY_WARNING', ordering: '-detected_at', is_false_positive: false, page_size: 6,
-      })
-      const rows = res.data?.results ?? res.data ?? []
-      setItems(rows.filter(r => (r.detection_method || '').startsWith('EARLY_WARNING')))
+      const res = await surveillanceApi.earlyWarningOverview({ limit: 6 })
+      setItems(res.data?.results ?? [])
     } catch {
       setError(true)
     } finally {
@@ -803,7 +814,11 @@ function EarlyWarningPanel() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    const id = setInterval(load, 5 * 60 * 1000)   // refresh every 5 minutes
+    return () => clearInterval(id)
+  }, [load])
 
   return (
     <Panel>
@@ -822,25 +837,30 @@ function EarlyWarningPanel() {
             <RetryBtn onClick={load} />
           </div>
         ) : items.length === 0 ? (
-          <EmptyState icon="✓" label="No statistical aberrations detected" />
-        ) : items.map(a => (
-          <div key={a.id} style={{
-            background: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 6,
-            padding: '10px 12px', marginBottom: 8,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 13, color: C.text }}>
-                {a.disease_name} · {a.location_name}
-              </span>
-              <Badge label={a.severity} color={EW_SEVERITY_COLORS[a.severity] || C.accent} />
+          <EmptyState icon="✓" label="Not enough surveillance data to analyse yet" />
+        ) : items.map(a => {
+          const color = EW_STATUS_COLORS[a.status] || C.accent
+          return (
+            <div key={`${a.location}-${a.disease_code}`} style={{
+              background: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 6,
+              padding: '10px 12px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 13, color: C.text,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{a.disease_name} · {a.location_name}</span>
+                  <Badge label={a.status} color={color} />
+                </div>
+                <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: C.textMuted, marginTop: 4, letterSpacing: '0.06em' }}>
+                  {a.last_7_days} cases / 7d{a.rt != null ? ` · Rt ${a.rt}` : ''}
+                </div>
+              </div>
+              <Sparkline data={a.series} color={color} />
             </div>
-            <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: C.textMuted, marginTop: 4, letterSpacing: '0.06em' }}>
-              {a.actual_cases} cases vs {a.expected_cases} expected
-              {a.percentage_increase != null ? ` (${Number(a.percentage_increase) > 0 ? '+' : ''}${Number(a.percentage_increase).toFixed(0)}%)` : ''}
-              {' · '}{formatDistanceToNow(new Date(a.detected_at), { addSuffix: true })}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </Panel>
   )

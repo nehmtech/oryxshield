@@ -12,7 +12,7 @@ OryxShield gives national and regional health authorities one place to **detect 
 
 | Capability | Details |
 |---|---|
-| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping, **statistical early warning** (EARS C1/C2/C3, CUSUM, Poisson exceedance, Rt estimate), run hourly by Celery and raising deduplicated anomalies automatically, also available on demand via `GET /api/v1/surveillance/dashboard/early-warning/?disease_code=...&location=...&days=60` |
+| **Surveillance** | Health-data ingestion, disease cases, anomaly detection, hotspot mapping, **statistical early warning** (EARS C1/C2/C3, CUSUM, Poisson exceedance, Rt estimate; per-region status with sparklines on the dashboard), run hourly by Celery and raising deduplicated anomalies automatically, also available on demand via `GET /api/v1/surveillance/dashboard/early-warning/?disease_code=...&location=...&days=60` |
 | **Risk assessment** | Risk scoring, outbreak probability, threshold-based alerts |
 | **Response** | Response plans, activations, incidents, interventions, decision support |
 | **Coordination** | Multi-agency tasks, teams, meetings, escalation |
@@ -115,7 +115,7 @@ pytest                      # settings: config.settings.testing (in-memory SQLit
 cd ../frontend && npm run build
 ```
 
-Current suite (~1,250 tests) covers authentication, 2FA, permissions, credential encryption, the early-warning engine and API, a smoke test of every parameter-less GET route, and negative-path tests of every write route (bad bodies and unknown IDs never cause a 5xx; anonymous users cannot modify data). GitHub Actions (`.github/workflows/ci.yml`) runs the backend tests and frontend build on every push. The frontend production build passes.
+Current suite (~1,270 tests) covers authentication, 2FA, permissions, credential encryption, the early-warning engine and API, a smoke test of every parameter-less GET route, and negative-path tests of every write route (bad bodies and unknown IDs never cause a 5xx; anonymous users cannot modify data). GitHub Actions (`.github/workflows/ci.yml`) runs the backend tests and frontend build on every push. The frontend production build passes.
 
 ## Deployment
 

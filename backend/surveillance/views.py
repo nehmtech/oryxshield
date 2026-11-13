@@ -513,6 +513,17 @@ class SurveillanceDashboardViewSet(viewsets.ViewSet):
                        "start": start.isoformat(), "end": end.isoformat(), "series": series})
         return Response(result)
 
+    @action(detail=False, methods=["get"], url_path="early-warning-overview")
+    def early_warning_overview(self, request):
+        """Worst-first early-warning status per location/disease, with 30-day sparkline series."""
+        from .early_warning_service import overview
+
+        try:
+            limit = max(1, min(int(request.query_params.get("limit", 12)), 50))
+        except ValueError:
+            return Response({"detail": "limit must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"results": overview(limit=limit)})
+
     @action(detail=False, methods=["get"])
     def overview(self, request):
         today = timezone.now().date()

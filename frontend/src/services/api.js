@@ -329,6 +329,8 @@ export const surveillanceApi = {
 
   // Dashboard aggregate
   surveillanceDashboard:   (params) => api.get('/surveillance/dashboard/overview/', { params }),
+  earlyWarningOverview:    (params) => api.get('/surveillance/dashboard/early-warning-overview/', { params }),
+  earlyWarning:            (params) => api.get('/surveillance/dashboard/early-warning/', { params }),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
