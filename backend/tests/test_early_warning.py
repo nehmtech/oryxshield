@@ -185,3 +185,26 @@ class TestEarlyWarningScan:
         from surveillance.tasks import run_early_warning_scan
         self._seed(FLAT[-16:] + [10, 16, 24, 36])
         assert run_early_warning_scan.apply().get()["anomalies_created"] == 1
+
+
+@pytest.mark.django_db
+def test_anomaly_list_exposes_detection_method_and_search(api_client, analyst_user):
+    from core.models import Location
+    from surveillance.models import AnomalyDetection
+    loc = Location.objects.create(name="Omusati", code="NA-OM", location_type="REGION")
+    now = timezone.now()
+    for method in ("EARLY_WARNING:ears_c2", "ZSCORE"):
+        AnomalyDetection.objects.create(
+            location=loc, disease_code="A00", disease_name="Cholera", anomaly_type="SPIKE",
+            severity="HIGH", detection_method=method, confidence_score=80,
+            start_date=now, end_date=now)
+    api_client.force_authenticate(analyst_user)
+    r = api_client.get("/api/v1/surveillance/anomalies/", {"search": "EARLY_WARNING"})
+    rows = r.json()["results"]
+    assert len(rows) == 1 and rows[0]["detection_method"].startswith("EARLY_WARNING")
+
+
+@pytest.mark.django_db
+def test_hotspot_search_does_not_error(api_client, analyst_user):
+    api_client.force_authenticate(analyst_user)
+    assert api_client.get("/api/v1/surveillance/hotspots/", {"search": "x"}).status_code == 200

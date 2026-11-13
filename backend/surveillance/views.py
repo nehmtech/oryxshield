@@ -186,7 +186,7 @@ class AnomalyDetectionViewSet(viewsets.ModelViewSet):
         "anomaly_type", "severity", "is_verified", "is_false_positive",
         "location", "disease_code",
     ]
-    search_fields = ["disease_name", "disease_code"]
+    search_fields = ["disease_name", "disease_code", "detection_method"]
     ordering_fields = ["detected_at", "severity", "confidence_score"]
     pagination_class = CustomPagination
 

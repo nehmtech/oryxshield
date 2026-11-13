@@ -110,6 +110,7 @@ class AnomalyDetectionListSerializer(serializers.ModelSerializer):
             "id", "anomaly_type", "disease_name", "disease_code", "severity",
             "location", "location_name", "actual_cases", "expected_cases",
             "confidence_score", "is_verified", "is_false_positive", "detected_at",
+            "detection_method", "percentage_increase",
         ]
 
 

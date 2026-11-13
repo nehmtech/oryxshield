@@ -780,6 +780,72 @@ function CasesSnapshot({ data, loading, error, onRetry }) {
   )
 }
 
+// ─── Early Warning ──────────────────────────────────────────────────────────────
+const EW_SEVERITY_COLORS = { LOW: C.success, MEDIUM: C.warning, HIGH: '#f97316', CRITICAL: C.danger }
+
+function EarlyWarningPanel() {
+  const [items, setItems]     = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(false)
+    try {
+      const res = await surveillanceApi.listAnomalies({
+        search: 'EARLY_WARNING', ordering: '-detected_at', is_false_positive: false, page_size: 6,
+      })
+      const rows = res.data?.results ?? res.data ?? []
+      setItems(rows.filter(r => (r.detection_method || '').startsWith('EARLY_WARNING')))
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  return (
+    <Panel>
+      <PanelHeader title="Early Warning" right={
+        <Link to="/dashboard/surveillance" style={{
+          fontFamily: 'Space Mono, monospace', fontSize: 9, color: C.accent,
+          textDecoration: 'none', letterSpacing: '0.1em',
+        }}>All anomalies →</Link>
+      } />
+      <div style={{ padding: 14 }}>
+        {loading ? (
+          [...Array(3)].map((_, i) => <Shimmer key={i} height={44} radius={6} style={{ marginBottom: 8 }} />)
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ color: C.danger, fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 12, marginBottom: 8 }}>Failed</div>
+            <RetryBtn onClick={load} />
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState icon="✓" label="No statistical aberrations detected" />
+        ) : items.map(a => (
+          <div key={a.id} style={{
+            background: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 6,
+            padding: '10px 12px', marginBottom: 8,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 13, color: C.text }}>
+                {a.disease_name} · {a.location_name}
+              </span>
+              <Badge label={a.severity} color={EW_SEVERITY_COLORS[a.severity] || C.accent} />
+            </div>
+            <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: C.textMuted, marginTop: 4, letterSpacing: '0.06em' }}>
+              {a.actual_cases} cases vs {a.expected_cases} expected
+              {a.percentage_increase != null ? ` (${Number(a.percentage_increase) > 0 ? '+' : ''}${Number(a.percentage_increase).toFixed(0)}%)` : ''}
+              {' · '}{formatDistanceToNow(new Date(a.detected_at), { addSuffix: true })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  )
+}
+
 // ─── Analytics Quick Stats ──────────────────────────────────────────────────────
 function AnalyticsQuickStats({ data, loading, error, onRetry }) {
   const items = [
@@ -1387,6 +1453,7 @@ export default function Dashboard() {
           error={opsError}
           onRetry={fetchOps}
         />
+        <EarlyWarningPanel />
       </motion.div>
 
       {/* ── Row 3: Analytics + Coordination + Resources ──────────────────── */}
