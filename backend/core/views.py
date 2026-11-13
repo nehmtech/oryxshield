@@ -33,6 +33,7 @@ from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.http import HttpResponse
 from django.utils import timezone
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -286,6 +287,10 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
     pagination_class = SmallPagination
+
+    def create(self, request, *args, **kwargs):
+        # Profiles are created automatically with their user (signal); never via the API.
+        raise MethodNotAllowed(request.method)
 
     def get_queryset(self):
         if self.request.user.is_staff:

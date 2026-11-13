@@ -115,7 +115,7 @@ pytest                      # settings: config.settings.testing (in-memory SQLit
 cd ../frontend && npm run build
 ```
 
-Current suite (~500 tests) covers authentication, 2FA, permissions, credential encryption, the early-warning engine and API, and a smoke test of every parameter-less GET route (no 5xx for admins, no anonymous access). GitHub Actions (`.github/workflows/ci.yml`) runs the backend tests and frontend build on every push. The frontend production build passes.
+Current suite (~1,250 tests) covers authentication, 2FA, permissions, credential encryption, the early-warning engine and API, a smoke test of every parameter-less GET route, and negative-path tests of every write route (bad bodies and unknown IDs never cause a 5xx; anonymous users cannot modify data). GitHub Actions (`.github/workflows/ci.yml`) runs the backend tests and frontend build on every push. The frontend production build passes.
 
 ## Deployment
 

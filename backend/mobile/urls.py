@@ -14,8 +14,10 @@ from .views import (
     MobileNotificationViewSet,
 )
 from django.http import JsonResponse
+from django.views.decorators.http import require_safe
 from .public_interface import chw_dashboard, chw_tasks, delta_sync, nearby_workers
 
+@require_safe
 def _ping(request):
     return JsonResponse({"status": "ok"})
 
